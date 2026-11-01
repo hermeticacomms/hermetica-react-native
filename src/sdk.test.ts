@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ApiCtx } from './api.ts';
+import { call, type ApiCtx } from './api.ts';
 import { getGeofences, reportGeofence } from './geofence.ts';
 import { handlePushOpened, pushTokenBody } from './push.ts';
 
@@ -48,5 +48,20 @@ describe('geofences', () => {
     const track = vi.fn();
     reportGeofence(ctx(track), 'dwell', 'g1');
     expect(track).toHaveBeenCalledWith('$geofence_dwell', { geofence_id: 'g1' });
+  });
+});
+
+describe('call', () => {
+  it('sends a fresh Idempotency-Key on every POST and none on GET', async () => {
+    const f = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', f);
+    await call(ctx(), 'POST', '/client/push-tokens', {}, {});
+    await call(ctx(), 'POST', '/client/push-tokens', {}, {});
+    await call(ctx(), 'GET', '/client/geofences');
+    vi.unstubAllGlobals();
+    const keys = (f.mock.calls as unknown as [string, RequestInit][]).map(([, init]) => (init.headers as Record<string, string>)['idempotency-key']);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).not.toBe(keys[0]);
+    expect(keys[2]).toBeUndefined();
   });
 });

@@ -20,6 +20,6 @@ export async function call(ctx: ApiCtx, method: 'GET' | 'POST', path: string, qu
   const q = new URLSearchParams({ company_id: ctx.siteKey });
   for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== '') q.set(k, v);
   return fetch(`${ctx.endpoint.replace(/\/$/, '')}${path}?${q}`, {
-    method, headers: { 'content-type': 'application/json', authorization: `Bearer ${ctx.siteKey}` }, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    method, headers: { 'content-type': 'application/json', authorization: `Bearer ${ctx.siteKey}`, ...(method === 'POST' ? { 'idempotency-key': crypto.randomUUID() } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
