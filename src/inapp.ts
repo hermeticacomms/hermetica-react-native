@@ -1,6 +1,6 @@
 import { call, profileAttributes, type ApiCtx } from './api.ts';
 
-export interface InAppBlock { type: 'heading' | 'text' | 'image' | 'buttons'; text?: string; url?: string; alt?: string; buttons?: InAppButton[] }
+export interface InAppBlock { type: 'heading' | 'text' | 'image' | 'buttons' | 'component'; text?: string; url?: string; alt?: string; buttons?: InAppButton[]; componentKey?: string; fields?: Record<string, unknown> }
 export interface InAppButton { label: string; action: 'dismiss' | 'deep_link' | 'url' | 'event'; value?: string; style?: 'primary' | 'secondary' }
 export interface InAppMessage {
   id: string; variant: string; layout: 'modal' | 'banner_top' | 'banner_bottom' | 'fullscreen' | 'bottom_sheet'; queued: boolean; priority: number;

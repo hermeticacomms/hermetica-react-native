@@ -1,4 +1,4 @@
-import { call, type ApiCtx } from './api.ts';
+import { call, profileAttributes, type ApiCtx } from './api.ts';
 
 export interface Geofence { id: string; name: string; latitude: number; longitude: number; radius: number }
 export type GeofenceTransition = 'enter' | 'exit' | 'dwell';
@@ -11,5 +11,14 @@ export async function getGeofences(ctx: ApiCtx): Promise<Geofence[]> {
   return body.data.map((g) => ({ id: g.id, ...g.attributes }));
 }
 
-/** Sends `$geofence_enter` / `$geofence_exit` / `$geofence_dwell` as a normal event, so event-triggered journeys fire on it. */
-export const reportGeofence = (ctx: ApiCtx, type: GeofenceTransition, geofenceId: string): void => ctx.track(`$geofence_${type}`, { geofence_id: geofenceId });
+/**
+ * Reports the hit to the server, which records `geofence_entered` / `geofence_exited` / `geofence_dwelled` (with the geofence's name and position).
+ * Only when the server cannot be reached does it fall back to the legacy `$geofence_*` event, so one hit never fires a journey trigger twice.
+ */
+export function reportGeofence(ctx: ApiCtx, type: GeofenceTransition, geofenceId: string): void {
+  const a = profileAttributes(ctx.identity());
+  const legacy = () => ctx.track(`$geofence_${type}`, { geofence_id: geofenceId });
+  void call(ctx, 'POST', '/client/geofence-events', {}, {
+    geofenceId, transition: type, profile: { externalId: a['external_id'], email: a['email'], phoneNumber: a['phone_number'], anonymousId: a['anonymous_id'] },
+  }).then((r) => { if (!r.ok) legacy(); }, legacy);
+}

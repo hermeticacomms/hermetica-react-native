@@ -15,11 +15,14 @@ export interface InAppHostProps {
   onAction?: (action: 'deep_link' | 'url' | 'event', value: string, message: InAppMessage) => boolean | void;
   /** Fetch messages for the `app_open` trigger when the host mounts (default true). */
   fetchOnMount?: boolean;
+  /** Developer-defined components by key: a `component` block renders with its field values. Unknown keys render nothing. */
+  components?: Record<string, (fields: Record<string, unknown>) => ReactNode>;
 }
 
-function body(m: InAppMessage, onButton: (b: InAppButton) => void): ReactNode[] {
+function body(m: InAppMessage, onButton: (b: InAppButton) => void, components: InAppHostProps['components'] = {}): ReactNode[] {
   const s = m.style;
   return m.content.blocks.map((b, i) => {
+    if (b.type === 'component') { const render = components[b.componentKey ?? '']; return render ? h(View, { key: i }, render(b.fields ?? {})) : null; }
     if (b.type === 'heading') return h(Text, { key: i, style: { color: s.textColor, fontSize: 20, fontWeight: '700', marginBottom: 8 } }, b.text);
     if (b.type === 'text') return h(Text, { key: i, style: { color: s.textColor, fontSize: 16, marginBottom: 12 } }, b.text);
     if (b.type === 'image') return h(Image, { key: i, source: { uri: b.url }, accessibilityLabel: b.alt ?? '', resizeMode: 'cover', style: { width: '100%', height: 160, marginBottom: 12, borderRadius: Math.min(s.radius, 12) } });
@@ -31,18 +34,18 @@ function body(m: InAppMessage, onButton: (b: InAppButton) => void): ReactNode[] 
   });
 }
 
-function card(m: InAppMessage, onButton: (b: InAppButton) => void, onClose: () => void): ReactNode {
+function card(m: InAppMessage, onButton: (b: InAppButton) => void, onClose: () => void, components?: InAppHostProps['components']): ReactNode {
   const s = m.style;
   const edge = m.layout === 'fullscreen' ? { flex: 1, borderRadius: 0 } : m.layout === 'bottom_sheet' ? { borderTopLeftRadius: s.radius, borderTopRightRadius: s.radius } : m.layout === 'modal' ? { borderRadius: s.radius, marginHorizontal: 24 } : { borderRadius: 0 };
   const close = s.dismissible ? h(Pressable, { key: 'x', accessibilityRole: 'button', accessibilityLabel: 'Close', onPress: onClose, style: { position: 'absolute', top: 8, right: 12, padding: 6 } }, h(Text, { style: { color: s.textColor, fontSize: 20 } }, '×')) : null;
-  return h(View, { style: { backgroundColor: s.background, padding: 20, paddingTop: s.dismissible ? 32 : 20, ...edge } }, [h(ScrollView, { key: 'b' }, body(m, onButton)), close]);
+  return h(View, { style: { backgroundColor: s.background, padding: 20, paddingTop: s.dismissible ? 32 : 20, ...edge } }, [h(ScrollView, { key: 'b' }, body(m, onButton, components)), close]);
 }
 
 /**
  * Render once near the root of your app. It asks for messages on mount (app_open) and whenever the client reports a screen, event or
  * app trigger, shows the best one at a time, and tracks impression, click and dismiss.
  */
-export function HermeticaInAppHost({ client, onAction, fetchOnMount = true }: InAppHostProps): ReactNode {
+export function HermeticaInAppHost({ client, onAction, fetchOnMount = true, components }: InAppHostProps): ReactNode {
   const [queue, setQueue] = useState<InAppMessage[]>([]);
   const seen = useRef(new Set<string>());
   const current = queue[0];
@@ -71,7 +74,7 @@ export function HermeticaInAppHost({ client, onAction, fetchOnMount = true }: In
     else void Linking.openURL(b.value);
   };
 
-  const content = card(current, onButton, onClose);
+  const content = card(current, onButton, onClose, components);
   if (current.layout === 'banner_top' || current.layout === 'banner_bottom') {
     return h(View, { pointerEvents: 'box-none', style: { position: 'absolute', left: 0, right: 0, [current.layout === 'banner_top' ? 'top' : 'bottom']: 0 } }, content);
   }

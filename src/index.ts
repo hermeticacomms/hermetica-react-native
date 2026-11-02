@@ -2,10 +2,14 @@ import { createClient, type Client, type ClientOptions } from '@hermeticacomms/s
 import type { ApiCtx, DeviceMetadata, ProfileIds } from './api.ts';
 import { getGeofences, reportGeofence, type Geofence, type GeofenceTransition } from './geofence.ts';
 import { fetchInAppMessages, newSessionId, reportInAppEvent, type InAppMessage, type InAppTrigger } from './inapp.ts';
-import { handlePushOpened, setPushToken, unregisterPushToken, type PushOptions } from './push.ts';
+import { handlePushOpened, handlePushReceived, setPushToken, trackPushConversion, unregisterPushToken, type PushOptions } from './push.ts';
+import { deleteInboxMessage, fetchInbox, setInboxRead, type InboxMessage, type InboxPage } from './inbox.ts';
+import { liveUpdateOf, registerLiveActivityToken, type LiveTokenInput, type LiveUpdate } from './live.ts';
+import { fetchTrackers, reportTrackerEvent, type ComponentRenderer, type Tracker } from './trackers.ts';
 
 export { HermeticaInAppHost, type InAppClient, type InAppHostProps } from './host.ts';
-export type { DeviceMetadata, Geofence, GeofenceTransition, InAppMessage, InAppTrigger, ProfileIds, PushOptions };
+export type { ComponentRenderer, DeviceMetadata, Geofence, GeofenceTransition, InAppMessage, InAppTrigger, InboxMessage, InboxPage, LiveTokenInput, LiveUpdate, ProfileIds, PushOptions, Tracker };
+export { liveUpdateOf };
 
 /** The slice of @react-native-async-storage/async-storage used here (any async key-value store with this shape works). */
 export interface AsyncKv { getItem(k: string): Promise<string | null>; setItem(k: string, v: string): Promise<void>; removeItem(k: string): Promise<void> }
@@ -20,6 +24,19 @@ export type NativeClient = Client & {
   unregisterPushToken(token: string, o: PushOptions): Promise<boolean>;
   /** Call when a notification is tapped: tracks `$opened_push` and returns the deep link in the payload (or null). */
   handlePushOpened(notificationPayload: unknown): string | null;
+  /** Call when a notification arrives: tracks `$received_push` (delivered). */
+  handlePushReceived(notificationPayload: unknown): boolean;
+  /** Call when the person did what the push was for: tracks `$converted_push` for that message. */
+  trackPushConversion(notificationPayloadOrMessageId: unknown, props?: Record<string, unknown>): boolean;
+  /** iOS Live Activities: report a push-to-start token or a running activity's update token. */
+  registerLiveActivityToken(t: LiveTokenInput): Promise<boolean>;
+  /** Message centre: list, mark read/unread, delete. */
+  fetchInbox(o?: { unreadOnly?: boolean; cursor?: string; limit?: number }): Promise<InboxPage>;
+  setInboxRead(id: string, read?: boolean): Promise<boolean>;
+  deleteInboxMessage(id: string): Promise<boolean>;
+  /** Developer-defined components a journey's tracker step asked to show, and the event that moves the journey on. */
+  fetchTrackers(): Promise<Tracker[]>;
+  reportTrackerEvent(trackerId: string, event: string): Promise<boolean>;
   fetchInAppMessages(trigger: InAppTrigger): Promise<InAppMessage[]>;
   reportInAppEvent(m: Pick<InAppMessage, 'id' | 'variant'>, type: 'impression' | 'click' | 'dismiss', button?: string): Promise<void>;
   /** Subscribe to moments that can show an in-app message (screens, events). The in-app host uses this. */
@@ -74,6 +91,14 @@ export async function createReactNativeClient(opts: Omit<ClientOptions, 'storage
     setPushToken: (token, o) => setPushToken(api, token, o),
     unregisterPushToken: (token, o) => unregisterPushToken(api, token, o),
     handlePushOpened: (payload) => handlePushOpened(api, payload),
+    handlePushReceived: (payload) => handlePushReceived(api, payload),
+    trackPushConversion: (payload, props) => trackPushConversion(api, payload, props),
+    registerLiveActivityToken: (t) => registerLiveActivityToken(api, t),
+    fetchInbox: (o) => fetchInbox(api, o),
+    setInboxRead: (id, read) => setInboxRead(api, id, read),
+    deleteInboxMessage: (id) => deleteInboxMessage(api, id),
+    fetchTrackers: () => fetchTrackers(api),
+    reportTrackerEvent: (id, event) => reportTrackerEvent(api, id, event),
     fetchInAppMessages: (t) => fetchInAppMessages(api, sessionId, t),
     reportInAppEvent: (m, type, button) => reportInAppEvent(api, sessionId, m, type, button),
     onTrigger: (cb) => { listeners.add(cb); return () => { listeners.delete(cb); }; },

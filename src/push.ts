@@ -54,3 +54,17 @@ export function handlePushOpened(ctx: ApiCtx, payload: unknown): string | null {
   if (messageId) ctx.track('$opened_push', { hermetica_message_id: messageId });
   return str(d['deep_link']) ?? str(d['url']) ?? str(d['hermetica_url']);
 }
+
+/** Call when a notification arrives (foreground handler or notification service extension): tracks `$received_push`, which counts as delivered. Returns whether it was ours. */
+export function handlePushReceived(ctx: ApiCtx, payload: unknown): boolean {
+  const messageId = str(dataOf(payload)['hermetica_message_id']);
+  if (messageId) ctx.track('$received_push', { hermetica_message_id: messageId });
+  return !!messageId;
+}
+
+/** Call when the person did what the push was for (bought, booked...). Pass the notification payload or its message id; tracks `$converted_push` once per message on the server. */
+export function trackPushConversion(ctx: ApiCtx, payloadOrMessageId: unknown, props: Record<string, unknown> = {}): boolean {
+  const messageId = typeof payloadOrMessageId === 'string' ? payloadOrMessageId : str(dataOf(payloadOrMessageId)['hermetica_message_id']);
+  if (messageId) ctx.track('$converted_push', { ...props, hermetica_message_id: messageId });
+  return !!messageId;
+}

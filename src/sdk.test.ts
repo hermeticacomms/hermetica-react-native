@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { call, type ApiCtx } from './api.ts';
 import { getGeofences, reportGeofence } from './geofence.ts';
-import { handlePushOpened, pushTokenBody } from './push.ts';
+import { handlePushOpened, handlePushReceived, pushTokenBody, trackPushConversion } from './push.ts';
+import { liveUpdateOf } from './live.ts';
+import { fetchInbox } from './inbox.ts';
 
 const ctx = (track = vi.fn()): ApiCtx => ({
   endpoint: 'https://api.test', siteKey: 'pk', sdkVersion: 'rn-0.2', platform: 'ios', track,
@@ -41,13 +43,20 @@ describe('handlePushOpened', () => {
 });
 
 describe('geofences', () => {
-  it('reads the JSON:API list and reports transitions as $geofence_* events', async () => {
+  it('reads the JSON:API list and reports transitions to the server (no duplicate $geofence_* event)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: [{ type: 'geofence', id: 'g1', attributes: { name: 'Store', latitude: 1, longitude: 2, radius: 150 } }] }), { status: 200 })));
     expect(await getGeofences(ctx())).toEqual([{ id: 'g1', name: 'Store', latitude: 1, longitude: 2, radius: 150 }]);
     vi.unstubAllGlobals();
+    const f = vi.fn(async () => new Response('{}', { status: 202 }));
+    vi.stubGlobal('fetch', f);
     const track = vi.fn();
-    reportGeofence(ctx(track), 'dwell', 'g1');
-    expect(track).toHaveBeenCalledWith('$geofence_dwell', { geofence_id: 'g1' });
+    reportGeofence(ctx(track), 'enter', 'g1');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(track).not.toHaveBeenCalled();
+    const [url, init] = (f.mock.calls as unknown as [string, RequestInit][])[0]!;
+    expect(url).toContain('/client/geofence-events');
+    expect(JSON.parse(String(init.body))).toMatchObject({ geofenceId: 'g1', transition: 'enter', profile: { email: 'a@b.co', anonymousId: 'anon-1' } });
+    vi.unstubAllGlobals();
   });
 });
 
@@ -63,5 +72,27 @@ describe('call', () => {
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
     expect(keys[1]).not.toBe(keys[0]);
     expect(keys[2]).toBeUndefined();
+  });
+});
+
+describe('push delivered and converted', () => {
+  it('tracks $received_push and $converted_push only for Hermetica messages', () => {
+    const track = vi.fn();
+    expect(handlePushReceived(ctx(track), { data: { hermetica_message_id: 'm1' } })).toBe(true);
+    expect(handlePushReceived(ctx(track), { data: { other: 1 } })).toBe(false);
+    expect(trackPushConversion(ctx(track), 'm1', { value: 5 })).toBe(true);
+    expect(track.mock.calls).toEqual([['$received_push', { hermetica_message_id: 'm1' }], ['$converted_push', { value: 5, hermetica_message_id: 'm1' }]]);
+  });
+});
+
+describe('live notifications and inbox', () => {
+  it('reads an Android live data message and ignores other messages', () => {
+    expect(liveUpdateOf({ hermetica_live: '1', hermetica_activity_id: 'a1', event: 'update', activity_type: 'Order', content_state: '{"eta":3}', attributes: '{}' })).toEqual({ activityId: 'a1', event: 'update', activityType: 'Order', contentState: { eta: 3 }, attributes: {} });
+    expect(liveUpdateOf({ hermetica_message_id: 'm1' })).toBeNull();
+  });
+  it('the inbox is empty, not an error, when the request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 500 })));
+    expect(await fetchInbox(ctx())).toEqual({ items: [], unread: 0, nextCursor: null });
+    vi.unstubAllGlobals();
   });
 });
