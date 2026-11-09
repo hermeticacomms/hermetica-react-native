@@ -76,7 +76,7 @@ describe('call', () => {
 });
 
 describe('push delivered and converted', () => {
-  it('tracks $received_push and $converted_push only for Hermetica messages', () => {
+  it('tracks $received_push and $converted_push only for Hermeticor messages', () => {
     const track = vi.fn();
     expect(handlePushReceived(ctx(track), { data: { hermetica_message_id: 'm1' } })).toBe(true);
     expect(handlePushReceived(ctx(track), { data: { other: 1 } })).toBe(false);

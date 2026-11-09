@@ -47,7 +47,7 @@ function dataOf(payload: unknown): Bag {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 
-/** Tracks `$opened_push` for the Hermetica message the notification carried and returns its deep link (or null). Call it when the user taps a notification. */
+/** Tracks `$opened_push` for the Hermeticor message the notification carried and returns its deep link (or null). Call it when the user taps a notification. */
 export function handlePushOpened(ctx: ApiCtx, payload: unknown): string | null {
   const d = dataOf(payload);
   const messageId = str(d['hermetica_message_id']);

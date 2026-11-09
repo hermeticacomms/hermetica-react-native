@@ -58,7 +58,7 @@ Messages are never served to erased or fully suppressed profiles, or profiles wi
 
 ## Geofences
 
-Hermetica does the list and the events; your OS geofencing library (for example `react-native-geolocation-service` plus a geofence
+Hermeticor does the list and the events; your OS geofencing library (for example `react-native-geolocation-service` plus a geofence
 module, or `expo-location`) does the monitoring.
 
 ```ts
