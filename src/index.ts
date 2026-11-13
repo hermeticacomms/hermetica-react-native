@@ -77,7 +77,7 @@ export async function createReactNativeClient(opts: Omit<ClientOptions, 'storage
   const sessionId = newSessionId();
   const track: Client['track'] = (name, props = {}, o) => { client.track(name, props, o); emit({ type: 'event', name, properties: props }); };
   const api: ApiCtx = {
-    endpoint: opts.endpoint, siteKey: opts.siteKey, sdkVersion: 'rn-0.2', device: { appName: opts.appName, ...device }, platform: platform ?? (device?.osName?.toLowerCase() === 'android' ? 'android' : 'ios'),
+    endpoint: opts.endpoint, siteKey: opts.siteKey, sdkVersion: 'rn-0.4.0', device: { appName: opts.appName, ...device }, platform: platform ?? (device?.osName?.toLowerCase() === 'android' ? 'android' : 'ios'),
     identity: () => ({ ...profile, anonymousId: client.anonymousId() ?? undefined }),
     // Push opens and geofences are sent straight to the client: they are not in-app triggers.
     track: (name, props) => client.track(name, props),
