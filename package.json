@@ -1,6 +1,6 @@
 {
-  "name": "@hermeticacomms/sdk-react-native",
-  "version": "0.4.0",
+  "name": "@hermeticor/sdk-react-native",
+  "version": "0.4.5",
   "description": "Hermetica React Native SDK: events, push, in-app messages, geofences",
   "license": "MIT",
   "type": "module",
@@ -9,6 +9,13 @@
     "url": "git+https://github.com/hermeticacomms/hermetica-react-native.git"
   },
   "homepage": "https://github.com/hermeticacomms/hermetica-react-native#readme",
+  "keywords": [
+    "hermeticor",
+    "hermetica",
+    "email",
+    "sms",
+    "outreach"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -29,7 +36,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@hermeticacomms/sdk-browser": "^0.4.0"
+    "@hermeticor/sdk-browser": "^0.4.5"
   },
   "peerDependencies": {
     "react": "*",

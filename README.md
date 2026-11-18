@@ -1,13 +1,13 @@
-# @hermeticacomms/sdk-react-native
+# @hermeticor/sdk-react-native
 
-A thin wrapper over `@hermeticacomms/sdk-browser` for React Native and Expo, plus push-token registration, in-app messages and
+A thin wrapper over `@hermeticor/sdk-browser` for React Native and Expo, plus push-token registration, in-app messages and
 geofence reporting. The browser SDK reads `localStorage`, `document` and `location` only for storage and page context, so the
 wrapper supplies small stand-ins (storage preloaded from AsyncStorage). Consent gating, batching, retry and de-duplication are the
 browser SDK's own. `react` and `react-native` are peer dependencies.
 
 ```ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createReactNativeClient } from '@hermeticacomms/sdk-react-native';
+import { createReactNativeClient } from '@hermeticor/sdk-react-native';
 
 const hm = await createReactNativeClient({
   siteKey: 'hm_pk_...', endpoint: 'https://api.example.com', storage: AsyncStorage, appName: 'shop', platform: 'ios',
@@ -42,7 +42,7 @@ Render the host once, near the root of the app. It asks for messages on mount (`
 shows the best one (modal, banner, full screen or bottom sheet), tracks impression, click and dismiss, and runs button actions.
 
 ```tsx
-import { HermeticaInAppHost } from '@hermeticacomms/sdk-react-native';
+import { HermeticaInAppHost } from '@hermeticor/sdk-react-native';
 
 <HermeticaInAppHost
   client={hm}
