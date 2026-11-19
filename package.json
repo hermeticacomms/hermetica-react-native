@@ -1,6 +1,6 @@
 {
   "name": "@hermeticor/sdk-react-native",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Hermetica React Native SDK: events, push, in-app messages, geofences",
   "license": "MIT",
   "type": "module",
@@ -36,7 +36,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@hermeticor/sdk-browser": "^0.4.5"
+    "@hermeticor/sdk-browser": "^0.4.6"
   },
   "peerDependencies": {
     "react": "*",
