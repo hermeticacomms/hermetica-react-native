@@ -28,6 +28,10 @@ Get the device token with your push library (APNs, FCM or Expo) and register it.
 await hm.setPushToken(token, { platform: 'ios', vendor: 'apns', environment: 'release', enablementStatus: 'AUTHORIZED', background: 'AVAILABLE' });
 await hm.unregisterPushToken(token, sameOptions);   // POST /client/push-token-unregister
 
+// Expo push token (needs a push_expo connection; all five options are required)
+const { data: expoToken } = await Notifications.getExpoPushTokenAsync();
+await hm.setPushToken(expoToken, { platform: Platform.OS === 'ios' ? 'ios' : 'android', vendor: 'expo', environment: 'release', enablementStatus: 'AUTHORIZED', background: 'AVAILABLE' });
+
 // when a notification is tapped (works with raw FCM data, APNs userInfo, Expo and Notifee response objects)
 const link = hm.handlePushOpened(notificationOrResponse);   // tracks "$opened_push", returns the deep link
 if (link) Linking.openURL(link);
